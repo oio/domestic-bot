@@ -1,16 +1,13 @@
 import aiohttp
 import asyncio
-from datetime import datetime
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 import dotenv
 import callbacks
-import functions
 import logging
 import os
-import random
-import re
+import startup
 import status
 import subprocess
 import sys
@@ -26,7 +23,7 @@ logger = logging.getLogger('discord')
 API_HOST = "0.0.0.0"  
 API_PORT = 8000
 API_URL = f"http://{API_HOST}:{API_PORT}"
-API_STARTUP_TIMEOUT = 60
+STARTUP_TIMEOUT = 60
 
 # Bot settings
 intents = discord.Intents.default()
@@ -34,54 +31,22 @@ intents.message_content = True
 intents.members = True
 bot = commands.Bot(command_prefix=status.get_state("prefix"), intents=intents)
 
-async def wait_for_api():
-	"""Wait for the API to be ready"""
-	logger.info("Checking if API is available...")
-	for attempt in range(5):
-		try:
-			async with aiohttp.ClientSession() as session:
-				async with session.get(f"{API_URL}/api_endpoints", timeout=2) as response:
-					if response.status == 200:
-						logger.info("API is already running")
-						return True
-		except (aiohttp.ClientError, asyncio.TimeoutError):
-			logger.info(f"API not available (attempt {attempt+1}/5), waiting...")
-			await asyncio.sleep(2)
-	logger.error("API not available after 5 attempts")
-	api_command_path = os.path.join("/Users/marta/Desktop/oio-domestic-ai/oio-domestic-API", "run-api.command")
-
-	if sys.platform == 'darwin':
-		try:
-			# Launch the API process in the background
-			subprocess.Popen(['bash', api_command_path], 
-							stdout=subprocess.DEVNULL,
-							stderr=subprocess.DEVNULL,
-							start_new_session=True)
-			
-			logger.info(f"Started API process with command: {api_command_path}")
-			
-			# Wait for API to become available
-			start_time = time.time()
-			while time.time() - start_time < API_STARTUP_TIMEOUT:
-				try:
-					async with aiohttp.ClientSession() as session:
-						async with session.get(f"{API_URL}/api_endpoints", timeout=2) as response:
-							if response.status == 200:
-								logger.info("API is now running")
-								return True
-				except (aiohttp.ClientError, asyncio.TimeoutError):
-					logger.info("Waiting for API to start...")
-					await asyncio.sleep(2)
-			
-			logger.error(f"API did not start within {API_STARTUP_TIMEOUT} seconds")
-			return False
-		except Exception as e:
-			logger.error(f"Failed to start API: {e}")
-			return False
-	else:
-		logger.error("Automatic API startup is only supported on macOS")
+async def ping_port(port):
+	"""Ping a port to check if it's available"""
+	try:
+		async with aiohttp.ClientSession() as session:
+			async with session.get(f"http://localhost:{port}", timeout=2) as response:
+				return True
+	except (aiohttp.ClientError, asyncio.TimeoutError):
 		return False
 
+async def wait_for_api():
+    """Wait for the API to be ready"""
+    return await startup.wait_for_api()
+
+async def start_tools():
+    """Start the tools"""
+    return await startup.start_tools()
 # Remove default help command
 bot.remove_command('help')
 
@@ -234,12 +199,19 @@ async def before_routine_function():
 	"""Wait for bot to be ready before starting routine_function loop."""
 	await bot.wait_until_ready()
 
+@bot.event
 async def on_ready():
-	api_ready = await wait_for_api()
+	"""api_ready = await wait_for_api()
+	tools_ready = await start_tools()
 	if not api_ready:
 		logger.error("Failed to ensure API is running. Bot functionality may be limited.")
+		return"""
+	
+	all_services_running = await startup.ensure_all_services()
+	if not all_services_running:
+		logger.error("Failed to ensure all services are running. Bot functionality may be limited.")
 		return
-		
+
 	logger.info(f"Bot logged in as {bot.user} (ID: {bot.user.id})")
 
 	try:
@@ -261,7 +233,45 @@ async def on_message(message):
 if __name__ == "__main__":
 	logger.info("Starting bot...")
 	try:
-		bot.run(os.environ['token'])
+		bot.run(os.environ['TOKEN'])
+	except KeyboardInterrupt:
+		# This is caught by the signal handler
+		logger.info("Received keyboard interrupt, shutting down...")
+		pass
 	except Exception as e:
 		logger.critical(f"Failed to start bot: {e}")
-		logger.critical(traceback.format_exc())
+	finally:
+		# Make sure we attempt to stop services if the bot crashes
+		try:
+			# Try to get the existing event loop or create a new one
+			try:
+				loop = asyncio.get_event_loop()
+			except RuntimeError:
+				# If no event loop exists, create a new one
+				loop = asyncio.new_event_loop()
+				asyncio.set_event_loop(loop)
+			
+			# Run the cleanup function in the loop
+			if loop.is_running():
+				loop.create_task(startup.stop_all_services())
+			else:
+				loop.run_until_complete(startup.stop_all_services())
+		except Exception as e:
+			logger.error(f"Error during shutdown: {e}")
+		finally:
+			logger.info("Bot process terminated")
+
+"""if __name__ == "__main__":
+	logger.info("Starting bot...")
+	try:
+		bot.run(os.environ['TOKEN'])
+	except KeyboardInterrupt:
+		# This is caught by the signal handler
+		pass
+	except Exception as e:
+		logger.critical(f"Failed to start bot: {e}")
+	finally:
+		# Make sure we attempt to stop services if the bot crashes
+		if not bot.loop.is_running():
+			asyncio.run(startup.stop_all_services())
+		logger.info("Bot process terminated")"""

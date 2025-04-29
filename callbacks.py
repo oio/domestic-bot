@@ -14,44 +14,6 @@ async def basic(endpoint, interaction):
 	logger.info(f"Basic callback called with endpoint: {endpoint} - {response}")
 	await interaction.followup.send(response["result"])
 
-async def arena_save(interaction, board):
-	await interaction.response.defer()
-	if not interaction.message:
-		await interaction.followup.send("Error: This command must be used as a reply to a message")
-		return
-	
-	message_id = interaction.message.id
-	message = await interaction.channel.fetch_message(message_id)
-
-	url = None
-
-	# check url in content 
-	content_urls = re.findall(r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', message.content)
-	if content_urls:
-		url = content_urls[0]
-	
-	# check embeds
-	if not url and message.embeds:
-		for embed in message.embeds:
-			if embed.url:
-				url = embed.url
-				break
-	
-	# check for attachments (pictures)
-	if not url and message.attachments:
-		for attachment in message.attachments:
-			if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
-				url = attachment.url
-				break
-
-	if not url:
-		await interaction.followup.send("Error: No URL found in the message")
-		return
-
-	response = await functions.api_POST(f"api/arena_save", {"board": board, "url": url})
-	logger.info(f"Arena save callback called with board: {board} - {response}")
-	await interaction.followup.send(response["result"])
-
 async def haiku(interaction, about):
 	await interaction.response.defer()
 	# Get the 'about' parameter from the interaction options
@@ -94,20 +56,6 @@ async def image(interaction, prompt):
 	embed.set_footer(text=f"✏️ prompt: {prompt}\n⌛ Generated on a MacMini in {int(generation_time)} seconds\n☕️ This generation used the energy of {total_energy_nespresso} espresso")
 	await interaction.followup.send(embed=embed, file=file)
 
-async def pokemon(interaction):
-	await interaction.response.defer()
-	response = await functions.api_POST('api/pokemon', None)
-	message = response['result']['message']
-	is_shiny = response['result']['is_shiny']
-	image = response['result']['image']
-	#logger.info(f"Pokemon callback called - {response}")
-	if is_shiny == "True":
-		embed = discord.Embed(description=f"{message}", color=0xf2ad39)
-	else:
-		embed = discord.Embed(description=f"{message}", color=0x74b354)
-	embed.set_image(url=f"{image}")
-	await interaction.followup.send(embed=embed)
-
 async def rembg(interaction, image_url=None, attachment=None):
 	await interaction.response.defer()
 	if attachment:
@@ -144,11 +92,4 @@ async def throw(interaction, faces):
 	await interaction.response.defer()
 	response = await functions.api_POST('api/throw', {"faces": faces})
 	logger.info(f"Throw callback called with faces: {faces} - {response}")
-	await interaction.followup.send(response["result"])
-
-async def who_starts(interaction):
-	await interaction.response.defer()
-	# TODO get oios
-	response = await functions.api_POST('api/who_starts', None)
-	logger.info(f"Who starts callback called - {response}")
 	await interaction.followup.send(response["result"])

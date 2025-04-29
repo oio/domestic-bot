@@ -3,22 +3,30 @@ This is the Discord bot side of Roby. It's a FastAPI + Discord.py app whose comm
 
 ## Set the bot
 ### Create a Discord app
-Register an app on Discord using the [Developer Portal](https://discord.com/developers/docs/quick-start/getting-started).
+Register a Discord Application using the [Developer Portal](https://discord.com/developers/docs/quick-start/getting-started). Go into the Application's panel set the needed settings.
+#### Under the Bot panel
+Set to true all the Privileged Gateway Intents (Presence Intent
+, Server Members Intent, Message Content Intent).
+####  Under the Installation panel
+1. Only select Guild install. 
+To be fully implementable the bot will require the following scopes and permissions to be enabled:
+Scopes
+1. application.commands
+1. bot
+Permissions
+1. Administrator
+1. Manage Channels
+1. Manage Server
+1. Manage Messages
+1. Manage Roles
+1. Send Messages
+1. View Channels
 
-###  secrets/config.json
-Here is the architecture of the config we're using
-```python
-{
-	"token": "token", # Discord app token
-	"prefix" : "roby ",
-	"arena_token" : "arena_token", # are.na API token
-	"arena2discord_url" :  "spreadsheet url",# spreadsheet url
-	"guild_ids" : [], # server ids
-	"role_ids" : [], #"role ids for each server"
-	"oio_channel_id" : 1234, # main channel id
-	"test_oio_channel_id" : 2345, # test channel id
-	"service_account" : {} # for firebase	  
-}
+###  env
+You need to add an .env file inside the bot's root folder with the following variables.
+```
+TOKEN = YOUR_DISCORD_BOT_TOKEN
+ROBY_CHANNEL = OPTIONAL,_A_SPECIFIC_CHANNEL_ID_FOR_BOT_OUTPUTS
 ```
 
 ## Run the app
