@@ -50,7 +50,12 @@ async def thanks(interaction: discord.Interaction):
 	await callbacks.basic("api_route_name", interaction) # you can use the basic callback for commands that don't require parameters
 ```
 
+Most of the commands can be handled via the basic callback `callbacks.py`, however more complex ones that require the usage of parameters or result manipulation need to be implemented.
 ```
 # callbacks.py
-
+async def first_two_chars(endpoint, interaction):
+	await interaction.response.defer() # always defer the interaction to have time to elaborate the output
+	response = await functions.api_POST(f"api/{endpoint}", None)
+	value = response["result"][:2]
+	await interaction.followup.send(value)
 ```
