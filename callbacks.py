@@ -14,6 +14,20 @@ async def basic(endpoint, interaction):
 	logger.info(f"Basic callback called with endpoint: {endpoint} - {response}")
 	await interaction.followup.send(response["result"])
 
+async def currency(endpoint, interaction):
+	await interaction.response.defer()
+	response = await functions.api_POST(f"api/{endpoint}", None)
+	logger.info(f"Currency callback called with endpoint: {endpoint} - {response}")
+	# Format the number with thousands separator
+	value = float(response["result"])
+	# Remove trailing zeros from decimal places
+	if value.is_integer():
+		parsed_response = f"{value:,.0f} USD"
+	else:
+		# Remove trailing zeros but keep necessary decimals
+		parsed_response = f"{value:,.{len(str(value).split('.')[-1].rstrip('0'))}f} USD"
+	await interaction.followup.send(parsed_response)
+
 async def haiku(interaction, about):
 	await interaction.response.defer()
 	# Get the 'about' parameter from the interaction options

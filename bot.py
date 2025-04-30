@@ -66,14 +66,14 @@ async def bop(interaction: discord.Interaction):
 @bot.tree.command(name="btc", description="💰 Bitcoin value in USD")
 async def btc(interaction: discord.Interaction):
 	logger.info(f"Btc command called")
-	await callbacks.basic("btc", interaction)
-
-
+	#await callbacks.basic("btc", interaction)
+	await callbacks.currency("btc", interaction)
 #eth
 @bot.tree.command(name="eth", description="💰 Ethereum value in USD")
 async def eth(interaction: discord.Interaction):
 	logger.info(f"Eth command called")
-	await callbacks.basic("eth", interaction)
+	#await callbacks.basic("eth", interaction)
+	await callbacks.currency("eth", interaction)
 
 #flip
 @bot.tree.command(name="flip", description="🪙 Flip a coin")
@@ -144,7 +144,7 @@ async def roby(interaction: discord.Interaction, prompt: str):
 	logger.info(f"Roby command called")
 	await callbacks.roby(interaction, prompt)
 
-#thanks
+#thanks TODO
 @bot.tree.command(name="thanks", description="🙏 Thanks")
 async def thanks(interaction: discord.Interaction):
 	logger.info(f"Thanks command called")
@@ -260,18 +260,3 @@ if __name__ == "__main__":
 			logger.error(f"Error during shutdown: {e}")
 		finally:
 			logger.info("Bot process terminated")
-
-"""if __name__ == "__main__":
-	logger.info("Starting bot...")
-	try:
-		bot.run(os.environ['TOKEN'])
-	except KeyboardInterrupt:
-		# This is caught by the signal handler
-		pass
-	except Exception as e:
-		logger.critical(f"Failed to start bot: {e}")
-	finally:
-		# Make sure we attempt to stop services if the bot crashes
-		if not bot.loop.is_running():
-			asyncio.run(startup.stop_all_services())
-		logger.info("Bot process terminated")"""
